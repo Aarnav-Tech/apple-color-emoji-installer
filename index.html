@@ -26,11 +26,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .prompt::before {
-      content: "$ ";
-      color: #0f0;
-    }
-
     a {
       color: #0ff;
       text-decoration: none;
@@ -38,14 +33,6 @@
 
     a:hover {
       text-decoration: underline;
-    }
-
-    pre {
-      background-color: #000;
-      color: #0f0;
-      padding: 1rem;
-      overflow-x: auto;
-      border-left: 4px solid #0f0;
     }
 
     .header {
@@ -58,6 +45,41 @@
       font-size: 0.9rem;
       color: #555;
     }
+
+    .command {
+      background-color: #000;
+      color: #0f0;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid #0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .prompt-text {
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      flex: 1;
+    }
+
+    .copy-btn {
+      background-color: transparent;
+      color: #0ff;
+      border: 1px solid #0ff;
+      padding: 0.3rem 0.6rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    .copy-btn:hover {
+      background-color: #0ff;
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -66,10 +88,7 @@
 
     <p>Bring macOS emoji vibes to your Linux terminal 😎</p>
 
-    <p class="prompt">git clone https://github.com/Aarnav-Tech/apple-color-emoji-installer.git</p>
-    <p class="prompt">cd apple-color-emoji-installer</p>
-    <p class="prompt">chmod +x install_apple_emoji.sh</p>
-    <p class="prompt">sudo ./install_apple_emoji.sh</p>
+    <div id="commands"></div>
 
     <p>Reboot or log out to apply the emoji changes.</p>
 
@@ -94,5 +113,50 @@
       Made with 💚 by Aarnav • MIT License
     </div>
   </div>
+
+  <script>
+    const commands = [
+      "git clone https://github.com/Aarnav-Tech/apple-color-emoji-installer.git",
+      "cd apple-color-emoji-installer",
+      "chmod +x install_apple_emoji.sh",
+      "sudo ./install_apple_emoji.sh"
+    ];
+
+    let delayBetween = 1000; // Delay between each command
+    let typingSpeed = 20;    // Typing speed
+
+    function typeCommand(cmd, index) {
+      const container = document.getElementById('commands');
+      const div = document.createElement('div');
+      div.className = 'command';
+
+      const span = document.createElement('span');
+      span.className = 'prompt-text';
+      div.appendChild(span);
+
+      const button = document.createElement('button');
+      button.className = 'copy-btn';
+      button.textContent = '[Copy]';
+      button.onclick = () => {
+        navigator.clipboard.writeText(cmd).then(() => {
+          const original = button.textContent;
+          button.textContent = '[Copied]';
+          setTimeout(() => button.textContent = original, 1000);
+        });
+      };
+      div.appendChild(button);
+      container.appendChild(div);
+
+      let i = 0;
+      const interval = setInterval(() => {
+        span.textContent += cmd[i++];
+        if (i >= cmd.length) clearInterval(interval);
+      }, typingSpeed);
+    }
+
+    commands.forEach((cmd, i) => {
+      setTimeout(() => typeCommand(cmd, i), i * delayBetween);
+    });
+  </script>
 </body>
 </html>
