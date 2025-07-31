@@ -19,7 +19,7 @@ This script downloads and installs the Apple Color Emoji font and updates font c
 1. Clone this repo or download the script:
 
 ```bash
-git clone https://github.com/yourusername/apple-emoji-installer.git
+git clone https://github.com/Aarnav-Tech/apple-emoji-installer.git
 cd apple-emoji-installer
 ```
 
@@ -36,6 +36,12 @@ sudo ./install_apple_emoji.sh
 ```
 
 4. Reboot or log out/log in to apply changes.
+
+5. [Optional] Delete The Folder after installing
+
+   ```bash
+   rm -rf /apple-color-emoji-installer
+   ```
 
 ---
 
