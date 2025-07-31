@@ -17,7 +17,7 @@ This script downloads and installs the Apple Color Emoji font and updates font c
 Here's what your system will look like after installing Apple Emoji:
 
 <p align="center">
-  <img src="assets/apple-preview.png" alt="Apple Emoji Preview" width="800"/>
+  <img src="assets/apple-preview.png" alt="Apple Emoji Preview" width="1000"/>
 </p>
 
 ---
