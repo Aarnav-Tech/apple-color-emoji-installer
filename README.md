@@ -1,6 +1,6 @@
 # 🍎 Apple Emoji Installer for Linux
 
-Make your Linux system *look fabulous* with Apple Color Emoji!  
+Make your Linux system 𝓁𝑜𝑜𝓀 𝒻𝒶𝒷𝓊𝓁𝑜𝓊𝓈 with Apple Color Emoji!  
 This script downloads and installs the Apple Color Emoji font and updates font configs for a seamless emoji experience across apps.
 
 ---
