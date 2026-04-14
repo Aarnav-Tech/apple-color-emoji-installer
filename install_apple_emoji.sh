@@ -1,6 +1,29 @@
 #!/usr/bin/env sh
 
-# Print ASCII Art header
+set -e
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# ── Privilege check (first thing, before any output) ─────────────────────────
+if [ "$(id -u)" -ne 0 ]; then
+  printf "${RED}${BOLD}Error:${RESET} This script must be run with sudo or as root.\n"
+  printf "Please run: ${BOLD}sudo ./install_apple_emoji.sh${RESET}\n"
+  exit 1
+fi
+
+# ── Resolve the invoking user (works reliably under sudo) ────────────────────
+REAL_USER="${SUDO_USER:-$(logname 2>/dev/null)}"
+if [ -z "$REAL_USER" ]; then
+  printf "${RED}${BOLD}Error:${RESET} Could not determine the invoking user. Run via sudo.\n"
+  exit 1
+fi
+USER_HOME=$(eval echo "~${REAL_USER}")
+
+# ── ASCII Art header ─────────────────────────────────────────────────────────
 cat <<'EOF'
 
 
@@ -12,8 +35,6 @@ cat <<'EOF'
    \ \__\ \__\ \__\    \ \__\    \ \_______\ \_______\                                            
     \|__|\|__|\|__|     \|__|     \|_______|\|_______|                                            
                                                                                                   
-                                                                                                  
-                                                                                                  
  ________  ________  ___       ________  ________                                                 
 |\   ____\|\   __  \|\  \     |\   __  \|\   __  \                                                
 \ \  \___|\ \  \|\  \ \  \    \ \  \|\  \ \  \|\  \                                               
@@ -22,8 +43,6 @@ cat <<'EOF'
    \ \_______\ \_______\ \_______\ \_______\ \__\\ _\                                             
     \|_______|\|_______|\|_______|\|_______|\|__|\|__|                                            
                                                                                                   
-                                                                                                  
-                                                                                                  
  _______   _____ ______   ________        ___  ___                                                
 |\  ___ \ |\   _ \  _   \|\   __  \      |\  \|\  \                                               
 \ \   __/|\ \  \\\__\ \  \ \  \|\  \     \ \  \ \  \                                              
@@ -31,8 +50,6 @@ cat <<'EOF'
   \ \  \_|\ \ \  \    \ \  \ \  \\\  \|\  \\_\  \ \  \                                            
    \ \_______\ \__\    \ \__\ \_______\ \________\ \__\                                           
     \|_______|\|__|     \|__|\|_______|\|________|\|__|                                           
-                                                                                                  
-                                                                                                  
                                                                                                   
  ___  ________   ________  _________  ________  ___       ___       _______   ________  ___       
 |\  \|\   ___  \|\   ____\|\___   ___\\   __  \|\  \     |\  \     |\  ___ \ |\   __  \|\  \      
@@ -44,41 +61,47 @@ cat <<'EOF'
                    \|_________|                                                              |\__\
                                                                                              \|__|
 
-                                                                                                  
+
 EOF
 
-printf "${BOLD}Loading.....\n"
+printf "${BOLD}Installing Apple Color Emoji for Linux...${RESET}\n\n"
+sleep 2
 
-sleep 5
-
-# Color codes for terminal output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-# Check if running as root or with sudo
-if [ "$(id -u)" -ne 0 ]; then
-  printf "${RED}${BOLD}Error:${RESET} This script must be run with sudo or as root.\n"
-  printf "Please run: ${BOLD}sudo ./install_apple_emoji.sh${RESET}\n"
+# ── Dependency check ─────────────────────────────────────────────────────────
+if ! command -v wget > /dev/null 2>&1; then
+  printf "${RED}${BOLD}Error:${RESET} wget is not installed. Please install it and retry.\n"
+  printf "  On Arch/EndeavourOS: ${BOLD}sudo pacman -S wget${RESET}\n"
+  printf "  On Debian/Ubuntu:    ${BOLD}sudo apt install wget${RESET}\n"
   exit 1
 fi
 
-printf "${BOLD}${GREEN}Creating font directory for user...${RESET}\n"
-# Directory for the invoking user's fonts, not root's home
-USER_HOME=$(eval echo "~$(logname)")
-mkdir -p "${USER_HOME}/.local/share/fonts/"
+# ── Font directory ───────────────────────────────────────────────────────────
+printf "${BOLD}${GREEN}[1/6] Creating font directory for ${REAL_USER}...${RESET}\n"
+FONT_DIR="${USER_HOME}/.local/share/fonts"
+mkdir -p "${FONT_DIR}"
 
-printf "${BOLD}${GREEN}Downloading Apple Color Emoji font...${RESET}\n"
-wget https://github.com/samuelngs/apple-emoji-linux/releases/latest/download/AppleColorEmoji.ttf -O "${USER_HOME}/.local/share/fonts/AppleColorEmoji.ttf"
+# ── Download font ────────────────────────────────────────────────────────────
+printf "${BOLD}${GREEN}[2/6] Downloading Apple Color Emoji font...${RESET}\n"
+FONT_URL="https://github.com/samuelngs/apple-emoji-ttf/releases/download/macos-26-20260219-2aa12422/AppleColorEmoji-Linux.ttf"
+FONT_DEST="${FONT_DIR}/AppleColorEmoji-Linux.ttf"
 
-printf "${BOLD}${GREEN}Backing up existing /etc/fonts/conf.d/60-generic.conf if exists...${RESET}\n"
-if [ -f /etc/fonts/conf.d/60-generic.conf ]; then
-  cp /etc/fonts/conf.d/60-generic.conf /etc/fonts/conf.d/60-generic.conf.bak
+  wget --show-progress -q "$FONT_URL" -O "$FONT_DEST"
+
+if [ ! -f "$FONT_DEST" ] || [ ! -s "$FONT_DEST" ]; then
+  printf "${RED}${BOLD}Error:${RESET} Font download failed. Please check your internet connection.\n"
+  rm -f "$FONT_DEST"
+  exit 1
 fi
 
-printf "${BOLD}${GREEN}Updating /etc/fonts/conf.d/60-generic.conf to prioritize Apple Color Emoji...${RESET}\n"
-tee /etc/fonts/conf.d/60-generic.conf > /dev/null <<EOL
+# ── System-wide fontconfig ───────────────────────────────────────────────────
+printf "${BOLD}${GREEN}[3/6] Updating system fontconfig emoji priority...${RESET}\n"
+SYSTEM_CONF="/etc/fonts/conf.d/60-generic.conf"
+if [ -f "$SYSTEM_CONF" ]; then
+  cp "$SYSTEM_CONF" "${SYSTEM_CONF}.bak"
+  printf "      Backed up existing config to ${SYSTEM_CONF}.bak\n"
+fi
+
+tee "$SYSTEM_CONF" > /dev/null <<EOL
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
@@ -99,9 +122,11 @@ tee /etc/fonts/conf.d/60-generic.conf > /dev/null <<EOL
 </fontconfig>
 EOL
 
-printf "${BOLD}${GREEN}Creating user fontconfig override for font preferences...${RESET}\n"
+# ── Per-user fontconfig override ─────────────────────────────────────────────
+printf "${BOLD}${GREEN}[4/6] Writing per-user fontconfig override...${RESET}\n"
 USER_CONFIG_DIR="${USER_HOME}/.config/fontconfig"
 mkdir -p "${USER_CONFIG_DIR}"
+
 tee "${USER_CONFIG_DIR}/fonts.conf" > /dev/null <<EOL
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
@@ -131,30 +156,32 @@ tee "${USER_CONFIG_DIR}/fonts.conf" > /dev/null <<EOL
 </fontconfig>
 EOL
 
-printf "${BOLD}${GREEN}Changing ownership of user's font files and config to the user...${RESET}\n"
-chown -R "$(logname)":"$(logname)" "${USER_HOME}/.local/share/fonts"
-chown -R "$(logname)":"$(logname)" "${USER_CONFIG_DIR}"
+# ── Fix ownership ────────────────────────────────────────────────────────────
+printf "${BOLD}${GREEN}[5/6] Fixing file ownership for ${REAL_USER}...${RESET}\n"
+chown -R "${REAL_USER}:${REAL_USER}" "${FONT_DIR}"
+chown -R "${REAL_USER}:${REAL_USER}" "${USER_CONFIG_DIR}"
 
-printf "${BOLD}${GREEN}Rebuilding font cache...${RESET}\n"
+# ── Rebuild font cache ───────────────────────────────────────────────────────
+printf "${BOLD}${GREEN}[6/6] Rebuilding font cache...${RESET}\n"
 fc-cache -f -v
 
+# ── Done ─────────────────────────────────────────────────────────────────────
 printf "\n${BOLD}${GREEN}Installation complete!${RESET}\n"
-printf "${BOLD}Please restart your applications or logout/login to apply the font changes.${RESET}\n\n"
+printf "${BOLD}Please restart your applications or log out and back in to apply changes.${RESET}\n\n"
 
-# Prompt user to restart now or not
-printf "${BOLD}${GREEN}Would you like to restart your computer now? (y/n): ${RESET}"
+# ── Reboot prompt ────────────────────────────────────────────────────────────
+printf "${BOLD}Would you like to restart your computer now? (y/n): ${RESET}"
 read -r answer
 
 case "$answer" in
-  [Yy]* )
+  [Yy]*)
     printf "${BOLD}${GREEN}Restarting now...${RESET}\n"
     systemctl reboot
     ;;
-  [Nn]* )
-    printf "${BOLD}${GREEN}Restart canceled. Restart later to apply changes.${RESET}\n"
+  [Nn]*)
+    printf "${BOLD}${GREEN}Restart skipped. Remember to reboot later to apply all changes.${RESET}\n"
     ;;
-  * )
-    printf "${RED}Invalid input. Please restart manually later for changes to take effect.${RESET}\n"
+  *)
+    printf "${RED}Unrecognised input. Please reboot manually for changes to take full effect.${RESET}\n"
     ;;
 esac
-
